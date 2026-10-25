@@ -1,0 +1,23 @@
+[Unit]
+Description=MediaDownloader Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mediadl
+Group=mediadl
+WorkingDirectory=/opt/media-downloader-bot
+EnvironmentFile=/opt/media-downloader-bot/.env
+ExecStart=/opt/media-downloader-bot/.venv/bin/python -m app
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/media-downloader-bot/data /opt/media-downloader-bot/downloads
+
+[Install]
+WantedBy=multi-user.target
