@@ -7,7 +7,7 @@ from pathlib import Path
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from app.config import Settings
 from app.db import Database
@@ -134,9 +134,9 @@ def build_router(settings: Settings, db: Database) -> Router:
             caption = f"{path.name[:900]}\nدانلودشده با MediaDownloader"
             if path.suffix.lower() in {".mp4", ".m4v", ".mov", ".webm"}:
                 try:
-                    await callback.message.answer_video(path, caption=caption, supports_streaming=True)
+                    await callback.message.answer_video(FSInputFile(path), caption=caption, supports_streaming=True)
                 except Exception:
-                    await callback.message.answer_document(path, caption=caption)
+                    await callback.message.answer_document(FSInputFile(path), caption=caption)
             else:
                 await callback.message.answer_document(path, caption=caption)
             await db.finish_job(job_id, "done")
