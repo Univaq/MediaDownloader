@@ -1,0 +1,1 @@
+"""MediaDownloader Telegram bot package."""
