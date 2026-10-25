@@ -23,10 +23,12 @@ A private Telegram media downloader bot for Instagram, YouTube, and Kick, built 
 
 1. Clone this repository and open it in PyCharm.
 2. Create and activate a virtual environment.
-3. Install dependencies with `pip install -e ".[dev]"`.
-4. Install FFmpeg and ensure `ffmpeg -version` works.
-5. Copy `.env.example` to `.env` and configure `BOT_TOKEN` and `ALLOWED_USER_IDS`.
-6. Run `python -m app`.
+3. In the PyCharm terminal, run `Set-ExecutionPolicy -Scope Process Bypass` if needed, then run `./scripts/setup_windows.ps1`.
+4. Edit `.env` and configure `BOT_TOKEN` and `ALLOWED_USER_IDS`.
+5. Verify FFmpeg with `ffmpeg -version`.
+6. Run `./.venv/Scripts/python.exe -m app`.
+
+See [the complete installation guide](docs/INSTALL.md). Separate dependency lists are provided in `requirements.txt` and `requirements-dev.txt`.
 
 Example configuration:
 
@@ -35,7 +37,7 @@ BOT_TOKEN=replace_me
 ALLOWED_USER_IDS=123456789
 DATABASE_PATH=data/bot.sqlite3
 DOWNLOAD_DIR=downloads
-MAX_FILE_SIZE_MB=1900
+MAX_FILE_SIZE_MB=49
 MAX_DURATION_SECONDS=10800
 MAX_CONCURRENT_DOWNLOADS=2
 TELEGRAM_UPLOAD_LIMIT_MB=49
@@ -46,7 +48,7 @@ LOG_LEVEL=INFO
 
 ## Ubuntu
 
-Install Python, venv, FFmpeg, and Git. Clone the repository, create a virtual environment, install the project, configure `.env`, then review `deploy/media-downloader-bot.service` and adjust the service user and paths before enabling it with systemd.
+Run `bash scripts/setup_ubuntu.sh` as a normal sudo-enabled user from the repository. Edit `.env`, then run `.venv/bin/python -m app` to test. For production, review `deploy/media-downloader-bot.service`, create the dedicated `mediadl` user, adjust ownership and paths, and only then enable systemd. See [the complete installation guide](docs/INSTALL.md).
 
 ## Development
 
