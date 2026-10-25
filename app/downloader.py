@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,7 +76,8 @@ def inspect_formats(url: str, max_duration_seconds: int) -> tuple[dict, list[Med
             label = f"{height or '?'}p video"
         else:
             label = f"Audio · {ext}"
-        formats.append(MediaFormat(format_id, label, ext, height, size, has_video, has_audio))
+        download_format_id = f"{format_id}+bestaudio/best" if has_video and not has_audio else format_id
+        formats.append(MediaFormat(download_format_id, label, ext, height, size, has_video, has_audio))
 
     # Prefer a compact menu; keep one best progressive format per height and useful audio formats.
     selected: dict[str, MediaFormat] = {}
