@@ -13,7 +13,7 @@ class Settings:
     allowed_user_ids: frozenset[int]
     database_path: Path = Path("data/bot.sqlite3")
     download_dir: Path = Path("downloads")
-    max_file_size_mb: int = 49
+    max_file_size_mb: int = 45
     max_duration_seconds: int = 10_800
     max_concurrent_downloads: int = 2
     log_level: str = "INFO"
@@ -46,7 +46,7 @@ class Settings:
             allowed_user_ids=frozenset(ids),
             database_path=Path(os.getenv("DATABASE_PATH", "data/bot.sqlite3")),
             download_dir=Path(os.getenv("DOWNLOAD_DIR", "downloads")),
-            max_file_size_mb=_positive_int("MAX_FILE_SIZE_MB", 49),
+            max_file_size_mb=_positive_int("MAX_FILE_SIZE_MB", 45),
             max_duration_seconds=_positive_int("MAX_DURATION_SECONDS", 10_800),
             max_concurrent_downloads=_positive_int("MAX_CONCURRENT_DOWNLOADS", 2),
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
