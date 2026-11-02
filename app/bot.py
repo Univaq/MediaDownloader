@@ -144,9 +144,9 @@ def build_router(settings: Settings, db: Database) -> Router:
             await callback.answer("Invalid format.", show_alert=True)
             return
 
+        pending.pop(token, None)
         await callback.answer("Download started.")
         if callback.message is None:
-            pending.pop(token, None)
             return
         await callback.message.edit_text(f"Downloading: {fmt.label} …")
         job_id = await db.create_job(user_id, url, fmt.format_id)
