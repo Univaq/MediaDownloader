@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import shutil
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -12,6 +13,12 @@ from app.db import Database
 
 async def main() -> None:
     settings = Settings.from_env()
+    missing_tools = [name for name in ("ffmpeg", "ffprobe") if shutil.which(name) is None]
+    if missing_tools:
+        raise RuntimeError(
+            "Missing required system tools: " + ", ".join(missing_tools)
+            + ". Install FFmpeg and ensure both commands are available on PATH."
+        )
     settings.download_dir.mkdir(parents=True, exist_ok=True)
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
 
