@@ -7,7 +7,14 @@ from pathlib import Path
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
-from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import (
+    CallbackQuery,
+    FSInputFile,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 
 from app.config import Settings
 from app.db import Database
@@ -135,10 +142,10 @@ def build_router(settings: Settings, db: Database) -> Router:
             if path.suffix.lower() in {".mp4", ".m4v", ".mov", ".webm"}:
                 try:
                     await callback.message.answer_video(FSInputFile(path), caption=caption, supports_streaming=True)
-                except Exception:
+                except TelegramBadRequest:
                     await callback.message.answer_document(FSInputFile(path), caption=caption)
             else:
-                await callback.message.answer_document(path, caption=caption)
+                await callback.message.answer_document(FSInputFile(path), caption=caption)
             await db.finish_job(job_id, "done")
             await callback.message.edit_text("دانلود و ارسال فایل با موفقیت انجام شد.")
         except DownloadError as exc:
