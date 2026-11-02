@@ -20,6 +20,9 @@ async def main() -> None:
             + ". Install FFmpeg and ensure both commands are available on PATH."
         )
     settings.download_dir.mkdir(parents=True, exist_ok=True)
+    for temporary_dir in settings.download_dir.glob("job-*"):
+        if temporary_dir.is_dir():
+            shutil.rmtree(temporary_dir, ignore_errors=True)
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
 
     logging.basicConfig(
