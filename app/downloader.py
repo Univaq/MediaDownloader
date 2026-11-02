@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import shutil
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -93,10 +95,12 @@ def inspect_formats(url: str, max_duration_seconds: int) -> tuple[dict, list[Med
 
 def download_media(url: str, format_id: str, output_dir: Path, max_file_size_mb: int) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
+    job_dir = Path(tempfile.mkdtemp(prefix="job-", dir=output_dir))
     safe_format = re.sub(r"[^A-Za-z0-9_+./-]", "", format_id)
     if not safe_format:
+        shutil.rmtree(job_dir, ignore_errors=True)
         raise DownloadError("The selected format is invalid.")
-    template = str(output_dir / "%(title).80s-%(id)s.%(ext)s")
+    template = str(job_dir / "%(title).80s-%(id)s.%(ext)s")
     options = {
         "format": safe_format,
         "outtmpl": template,
@@ -125,8 +129,10 @@ def download_media(url: str, format_id: str, output_dir: Path, max_file_size_mb:
                 raise DownloadError(f"The file exceeds the maximum allowed size of {max_file_size_mb} MB.")
             return path
     except DownloadError:
+        shutil.rmtree(job_dir, ignore_errors=True)
         raise
     except Exception as exc:
+        shutil.rmtree(job_dir, ignore_errors=True)
         message = str(exc).lower()
         if "max-filesize" in message or "file is larger" in message:
             raise DownloadError(f"The file size exceeds the {max_file_size_mb} MB limit.") from exc
