@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
+import shutil
+import time
 from pathlib import Path
 
 from aiogram import F, Router
@@ -33,7 +35,7 @@ def build_router(settings: Settings, db: Database) -> Router:
     router = Router(name="media-downloader")
     semaphore = asyncio.Semaphore(settings.max_concurrent_downloads)
     # Telegram callback data is short; keep full URLs and format IDs server-side.
-    pending: dict[str, tuple[int, str, list[MediaFormat]]] = {}
+    pending: dict[str, tuple[int, str, list[MediaFormat], float]] = {}
 
     def is_allowed(user_id: int | None) -> bool:
         return user_id is not None and user_id in settings.allowed_user_ids
@@ -90,8 +92,16 @@ def build_router(settings: Settings, db: Database) -> Router:
             await status.edit_text("An unexpected error occurred while inspecting the link.")
             return
 
+        now = time.monotonic()
+        expired = [key for key, value in pending.items() if now - value[3] > 1800]
+        for key in expired:
+            pending.pop(key, None)
+        if len(pending) >= 100:
+            oldest = min(pending, key=lambda key: pending[key][3])
+            pending.pop(oldest, None)
+
         token = secrets.token_urlsafe(6).replace("-", "a").replace("_", "b")[:10]
-        pending[token] = (user_id, url, formats)
+        pending[token] = (user_id, url, formats, now)
         rows = []
         for index, fmt in enumerate(formats):
             label = f"{fmt.label} · {_format_size(fmt.filesize)}"
@@ -117,7 +127,11 @@ def build_router(settings: Settings, db: Database) -> Router:
         if item is None:
             await callback.answer("This selection has expired. Please send the link again.", show_alert=True)
             return
-        owner_id, url, formats = item
+        owner_id, url, formats, created_at = item
+        if time.monotonic() - created_at > 1800:
+            pending.pop(token, None)
+            await callback.answer("This selection has expired. Please send the link again.", show_alert=True)
+            return
         if owner_id != user_id:
             await callback.answer("This option belongs to another user.", show_alert=True)
             return
@@ -132,6 +146,7 @@ def build_router(settings: Settings, db: Database) -> Router:
 
         await callback.answer("Download started.")
         if callback.message is None:
+            pending.pop(token, None)
             return
         await callback.message.edit_text(f"Downloading: {fmt.label} …")
         job_id = await db.create_job(user_id, url, fmt.format_id)
@@ -164,7 +179,7 @@ def build_router(settings: Settings, db: Database) -> Router:
             )
         finally:
             if path is not None:
-                path.unlink(missing_ok=True)
+                shutil.rmtree(path.parent, ignore_errors=True)
             pending.pop(token, None)
 
     return router
