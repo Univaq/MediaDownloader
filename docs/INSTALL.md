@@ -47,6 +47,7 @@ sudo -u mediadl git clone https://github.com/Univaq/MediaDownloader.git /opt/med
 sudo -u mediadl python3 -m venv /opt/media-downloader-bot/.venv
 sudo -u mediadl /opt/media-downloader-bot/.venv/bin/python -m pip install --upgrade pip
 sudo -u mediadl /opt/media-downloader-bot/.venv/bin/python -m pip install -r /opt/media-downloader-bot/requirements.txt
+sudo -u mediadl mkdir -p /opt/media-downloader-bot/data /opt/media-downloader-bot/downloads
 sudo -u mediadl cp /opt/media-downloader-bot/.env.example /opt/media-downloader-bot/.env
 sudoedit /opt/media-downloader-bot/.env
 sudo chown mediadl:mediadl /opt/media-downloader-bot/.env
