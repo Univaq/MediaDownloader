@@ -120,7 +120,7 @@ def download_media(url: str, format_id: str, output_dir: Path, max_file_size_mb:
             candidates = [filename, filename.with_suffix(".mp4"), filename.with_suffix(".mkv"), filename.with_suffix(".webm")]
             path = next((p for p in candidates if p.is_file()), None)
             if path is None:
-                matches = list(output_dir.glob(f"*{info.get('id', '')}*"))
+                matches = list(job_dir.glob(f"*{info.get('id', '')}*"))
                 path = next((p for p in matches if p.is_file()), None)
             if path is None:
                 raise DownloadError("The download completed, but the output file could not be found.")
