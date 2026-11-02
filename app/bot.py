@@ -6,8 +6,8 @@ import secrets
 from pathlib import Path
 
 from aiogram import F, Router
-from aiogram.filters import Command, CommandStart
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     CallbackQuery,
     FSInputFile,
@@ -120,7 +120,10 @@ def build_router(settings: Settings, db: Database) -> Router:
             await callback.answer("این گزینه متعلق به کاربر دیگری است.", show_alert=True)
             return
         try:
-            fmt = formats[int(index_raw)]
+            format_index = int(index_raw)
+            if format_index < 0:
+                raise IndexError
+            fmt = formats[format_index]
         except (ValueError, IndexError):
             await callback.answer("فرمت نامعتبر است.", show_alert=True)
             return
