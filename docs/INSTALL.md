@@ -38,7 +38,27 @@ nano .env
 .venv/bin/python -m app
 ```
 
-For production, create a dedicated `mediadl` system user, install the project under `/opt/media-downloader-bot`, set ownership and permissions on that directory, review `deploy/media-downloader-bot.service`, and only then install/enable the systemd service. Do not run the bot as root.
+For production, use a dedicated unprivileged service account and systemd:
+
+```bash
+sudo useradd --system --no-create-home --home-dir /opt/media-downloader-bot --shell /usr/sbin/nologin mediadl
+sudo install -d -o mediadl -g mediadl /opt/media-downloader-bot
+sudo -u mediadl git clone https://github.com/Univaq/MediaDownloader.git /opt/media-downloader-bot
+sudo -u mediadl python3 -m venv /opt/media-downloader-bot/.venv
+sudo -u mediadl /opt/media-downloader-bot/.venv/bin/python -m pip install --upgrade pip
+sudo -u mediadl /opt/media-downloader-bot/.venv/bin/python -m pip install -r /opt/media-downloader-bot/requirements.txt
+sudo -u mediadl cp /opt/media-downloader-bot/.env.example /opt/media-downloader-bot/.env
+sudoedit /opt/media-downloader-bot/.env
+sudo chown mediadl:mediadl /opt/media-downloader-bot/.env
+sudo chmod 600 /opt/media-downloader-bot/.env
+sudo install -m 644 /opt/media-downloader-bot/deploy/media-downloader-bot.service /etc/systemd/system/media-downloader-bot.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now media-downloader-bot
+sudo systemctl status media-downloader-bot
+sudo journalctl -u media-downloader-bot -f
+```
+
+Set `BOT_TOKEN` and `ALLOWED_USER_IDS` in `.env` before starting the service. The service unit assumes the installation path and account shown above. Do not run the bot as root.
 
 ## Configuration
 
@@ -46,7 +66,7 @@ For production, create a dedicated `mediadl` system user, install the project un
 - `ALLOWED_USER_IDS`: comma-separated numeric Telegram user IDs allowed to use the bot.
 - `DATABASE_PATH`: SQLite database file path.
 - `DOWNLOAD_DIR`: temporary download directory.
-- `MAX_FILE_SIZE_MB`: maximum downloaded file size in MiB.
+- `MAX_FILE_SIZE_MB`: maximum downloaded file size in MiB. The default is 45 MiB to stay below Telegram's upload limit.
 - `MAX_DURATION_SECONDS`: maximum source duration.
 - `MAX_CONCURRENT_DOWNLOADS`: maximum concurrent inspection/download operations.
 - `LOG_LEVEL`: Python logging level, e.g. `INFO` or `DEBUG`.
