@@ -33,12 +33,12 @@ def validate_url(url: str) -> str:
     candidate = url.strip()
     parsed = urlparse(candidate)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-        raise DownloadError("لطفاً یک لینک معتبر با http یا https بفرست.")
+        raise DownloadError("Please provide a valid HTTP or HTTPS link.")
     host = parsed.hostname.lower().rstrip(".")
     if host not in ALLOWED_HOSTS:
-        raise DownloadError("فعلاً فقط لینک‌های Instagram، YouTube و Kick پشتیبانی می‌شوند.")
+        raise DownloadError("Only Instagram, YouTube, and Kick links are currently supported.")
     if parsed.username or parsed.password:
-        raise DownloadError("لینک دارای اطلاعات ورود قابل قبول نیست.")
+        raise DownloadError("URLs containing embedded login credentials are not allowed.")
     return candidate
 
 
@@ -50,14 +50,14 @@ def _extract_info(url: str) -> dict:
     except DownloadError:
         raise
     except Exception as exc:
-        raise DownloadError("اطلاعات رسانه دریافت نشد؛ ممکن است لینک خصوصی یا پشتیبانی‌نشده باشد.") from exc
+        raise DownloadError("Could not retrieve media information. The link may be private or unsupported.") from exc
 
 
 def inspect_formats(url: str, max_duration_seconds: int) -> tuple[dict, list[MediaFormat]]:
     info = _extract_info(url)
     duration = info.get("duration")
     if duration is not None and duration > max_duration_seconds:
-        raise DownloadError(f"مدت ویدیو از حد مجاز ({max_duration_seconds // 60} دقیقه) بیشتر است.")
+        raise DownloadError(f"Media duration exceeds the configured limit ({max_duration_seconds // 60}  minutes).")
     formats: list[MediaFormat] = []
     for item in info.get("formats", []):
         if not item.get("url"):
@@ -87,7 +87,7 @@ def inspect_formats(url: str, max_duration_seconds: int) -> tuple[dict, list[Med
     result = list(selected.values())
     result.sort(key=lambda f: (not f.has_video, -(f.height or 0), f.ext))
     if not result:
-        raise DownloadError("هیچ فرمت قابل دانلودی برای این لینک پیدا نشد.")
+        raise DownloadError("No downloadable formats were found for this link.")
     return info, result[:10]
 
 
@@ -95,7 +95,7 @@ def download_media(url: str, format_id: str, output_dir: Path, max_file_size_mb:
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_format = re.sub(r"[^A-Za-z0-9_+./-]", "", format_id)
     if not safe_format:
-        raise DownloadError("فرمت انتخاب‌شده معتبر نیست.")
+        raise DownloadError("The selected format is invalid.")
     template = str(output_dir / "%(title).80s-%(id)s.%(ext)s")
     options = {
         "format": safe_format,
@@ -119,15 +119,15 @@ def download_media(url: str, format_id: str, output_dir: Path, max_file_size_mb:
                 matches = list(output_dir.glob(f"*{info.get('id', '')}*"))
                 path = next((p for p in matches if p.is_file()), None)
             if path is None:
-                raise DownloadError("دانلود تمام شد اما فایل خروجی پیدا نشد.")
+                raise DownloadError("The download completed, but the output file could not be found.")
             if path.stat().st_size > max_file_size_mb * 1024 * 1024:
                 path.unlink(missing_ok=True)
-                raise DownloadError(f"فایل از سقف مجاز {max_file_size_mb} مگابایت بزرگ‌تر است.")
+                raise DownloadError(f"The file exceeds the maximum allowed size of {max_file_size_mb} MB.")
             return path
     except DownloadError:
         raise
     except Exception as exc:
         message = str(exc).lower()
         if "max-filesize" in message or "file is larger" in message:
-            raise DownloadError(f"حجم فایل از سقف {max_file_size_mb} مگابایت بیشتر است.") from exc
-        raise DownloadError("دانلود ناموفق بود. لینک را بررسی کن و دوباره تلاش کن.") from exc
+            raise DownloadError(f"The file size exceeds the {max_file_size_mb} MB limit.") from exc
+        raise DownloadError("The download failed. Check the link and try again.") from exc
