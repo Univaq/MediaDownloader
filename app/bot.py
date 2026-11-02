@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 def _format_size(size: int | None) -> str:
     if not size:
-        return "حجم نامشخص"
+        return "Unknown size"
     return f"{size / (1024 * 1024):.1f} MB"
 
 
@@ -42,28 +42,30 @@ def build_router(settings: Settings, db: Database) -> Router:
     async def start(message: Message) -> None:
         user_id = message.from_user.id if message.from_user else None
         if not is_allowed(user_id):
-            await message.answer("این ربات خصوصی است و حساب شما مجاز نیست.")
+            await message.answer("This is a private bot, and your account is not authorized.")
             return
         await db.touch_user(user_id)
         await message.answer(
-            "سلام! لینک عمومی Instagram، YouTube یا Kick را بفرست.\n"
-            "بعد از بررسی، کیفیت‌های قابل‌دسترس نمایش داده می‌شوند.\n\n"
-            "فقط محتوایی را دانلود کن که اجازهٔ دریافت آن را داری."
+            "Hello! Send a public Instagram, YouTube, or Kick link.\n"
+            "Available formats and quality options will be shown after inspection.\n\n"
+            "Only download content you are authorized to access."
         )
 
     @router.message(Command("help"))
     async def help_command(message: Message) -> None:
         user_id = message.from_user.id if message.from_user else None
         if not is_allowed(user_id):
-            await message.answer("این ربات خصوصی است و حساب شما مجاز نیست.")
+            await message.answer("This is a private bot, and your account is not authorized.")
             return
-        await message.answer("یک لینک عمومی از Instagram، YouTube یا Kick بفرست؛ سپس کیفیت دلخواه را انتخاب کن.")
+        await message.answer(
+            "Send a public Instagram, YouTube, or Kick link, then choose your preferred quality."
+        )
 
     @router.message(F.text)
     async def receive_link(message: Message) -> None:
         user_id = message.from_user.id if message.from_user else None
         if not is_allowed(user_id):
-            await message.answer("این ربات خصوصی است و حساب شما مجاز نیست.")
+            await message.answer("This is a private bot, and your account is not authorized.")
             return
         text = (message.text or "").strip()
         if text.startswith("/"):
@@ -74,7 +76,7 @@ def build_router(settings: Settings, db: Database) -> Router:
             await message.answer(str(exc))
             return
 
-        status = await message.answer("در حال بررسی لینک و کیفیت‌های موجود…")
+        status = await message.answer("Checking the link and available formats…")
         try:
             async with semaphore:
                 info, formats = await asyncio.to_thread(
@@ -85,7 +87,7 @@ def build_router(settings: Settings, db: Database) -> Router:
             return
         except Exception:
             logger.exception("Unexpected error while inspecting media")
-            await status.edit_text("خطای غیرمنتظره هنگام بررسی لینک رخ داد.")
+            await status.edit_text("An unexpected error occurred while inspecting the link.")
             return
 
         token = secrets.token_urlsafe(6).replace("-", "a").replace("_", "b")[:10]
@@ -96,7 +98,7 @@ def build_router(settings: Settings, db: Database) -> Router:
             rows.append([InlineKeyboardButton(text=label[:60], callback_data=f"dl:{token}:{index}")])
         title = str(info.get("title") or "Media")[:150]
         await status.edit_text(
-            f"<b>{_escape(title)}</b>\nیک کیفیت را انتخاب کن:",
+            f"<b>{_escape(title)}</b>\nChoose a format:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
         )
 
@@ -104,20 +106,20 @@ def build_router(settings: Settings, db: Database) -> Router:
     async def choose_format(callback: CallbackQuery) -> None:
         user_id = callback.from_user.id
         if not is_allowed(user_id):
-            await callback.answer("حساب شما مجاز نیست.", show_alert=True)
+            await callback.answer("Your account is not authorized.", show_alert=True)
             return
         parts = (callback.data or "").split(":")
         if len(parts) != 3:
-            await callback.answer("درخواست نامعتبر است.", show_alert=True)
+            await callback.answer("Invalid request.", show_alert=True)
             return
         token, index_raw = parts[1], parts[2]
         item = pending.get(token)
         if item is None:
-            await callback.answer("این انتخاب منقضی شده؛ لینک را دوباره بفرست.", show_alert=True)
+            await callback.answer("This selection has expired. Please send the link again.", show_alert=True)
             return
         owner_id, url, formats = item
         if owner_id != user_id:
-            await callback.answer("این گزینه متعلق به کاربر دیگری است.", show_alert=True)
+            await callback.answer("This option belongs to another user.", show_alert=True)
             return
         try:
             format_index = int(index_raw)
@@ -125,13 +127,13 @@ def build_router(settings: Settings, db: Database) -> Router:
                 raise IndexError
             fmt = formats[format_index]
         except (ValueError, IndexError):
-            await callback.answer("فرمت نامعتبر است.", show_alert=True)
+            await callback.answer("Invalid format.", show_alert=True)
             return
 
-        await callback.answer("دانلود شروع شد")
+        await callback.answer("Download started.")
         if callback.message is None:
             return
-        await callback.message.edit_text(f"در حال دانلود: {fmt.label} …")
+        await callback.message.edit_text(f"Downloading: {fmt.label} …")
         job_id = await db.create_job(user_id, url, fmt.format_id)
         path: Path | None = None
         try:
@@ -140,8 +142,8 @@ def build_router(settings: Settings, db: Database) -> Router:
                     download_media, url, fmt.format_id, settings.download_dir, settings.max_file_size_mb
                 )
             if path.stat().st_size > settings.max_file_size_mb * 1024 * 1024:
-                raise DownloadError(f"فایل از سقف {settings.max_file_size_mb} مگابایت بزرگ‌تر است.")
-            caption = f"{path.name[:900]}\nدانلودشده با MediaDownloader"
+                raise DownloadError(f"The file exceeds the {settings.max_file_size_mb} MB size limit.")
+            caption = f"{path.name[:900]}\nDownloaded with MediaDownloader"
             if path.suffix.lower() in {".mp4", ".m4v", ".mov", ".webm"}:
                 try:
                     await callback.message.answer_video(FSInputFile(path), caption=caption, supports_streaming=True)
@@ -150,14 +152,16 @@ def build_router(settings: Settings, db: Database) -> Router:
             else:
                 await callback.message.answer_document(FSInputFile(path), caption=caption)
             await db.finish_job(job_id, "done")
-            await callback.message.edit_text("دانلود و ارسال فایل با موفقیت انجام شد.")
+            await callback.message.edit_text("The download completed and the file was sent successfully.")
         except DownloadError as exc:
             await db.finish_job(job_id, "failed")
             await callback.message.edit_text(str(exc))
         except Exception:
             logger.exception("Download/send failed for job %s", job_id)
             await db.finish_job(job_id, "failed")
-            await callback.message.edit_text("دانلود یا ارسال فایل ناموفق بود. محدودیت حجم تلگرام یا لینک را بررسی کن.")
+            await callback.message.edit_text(
+                "The download or file delivery failed. Check the file size limit and the source link."
+            )
         finally:
             if path is not None:
                 path.unlink(missing_ok=True)
