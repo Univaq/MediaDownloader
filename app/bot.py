@@ -27,14 +27,13 @@ logger = logging.getLogger(__name__)
 
 def _format_size(size: int | None) -> str:
     if not size:
-        return "Unknown size"
+        return "Size unknown"
     return f"{size / (1024 * 1024):.1f} MB"
 
 
 def build_router(settings: Settings, db: Database) -> Router:
     router = Router(name="media-downloader")
     semaphore = asyncio.Semaphore(settings.max_concurrent_downloads)
-    # Telegram callback data is short; keep full URLs and format IDs server-side.
     pending: dict[str, tuple[int, str, list[MediaFormat], float]] = {}
 
     def is_allowed(user_id: int | None) -> bool:
@@ -78,11 +77,15 @@ def build_router(settings: Settings, db: Database) -> Router:
             await message.answer(str(exc))
             return
 
-        status = await message.answer("Checking the link and available formats…")
+        status = await message.answer("Checking the link and available formats...")
         try:
             async with semaphore:
                 info, formats = await asyncio.to_thread(
-                    inspect_formats, url, settings.max_duration_seconds
+                    inspect_formats,
+                    url,
+                    settings.max_duration_seconds,
+                    settings.youtube_cookies_file,
+                    settings.socket_timeout_seconds,
                 )
         except DownloadError as exc:
             await status.edit_text(str(exc))
@@ -104,8 +107,10 @@ def build_router(settings: Settings, db: Database) -> Router:
         pending[token] = (user_id, url, formats, now)
         rows = []
         for index, fmt in enumerate(formats):
-            label = f"{fmt.label} · {_format_size(fmt.filesize)}"
-            rows.append([InlineKeyboardButton(text=label[:60], callback_data=f"dl:{token}:{index}")])
+            label = f"{fmt.label} - {_format_size(fmt.filesize)}"
+            rows.append(
+                [InlineKeyboardButton(text=label[:60], callback_data=f"dl:{token}:{index}")]
+            )
         title = str(info.get("title") or "Media")[:150]
         await status.edit_text(
             f"<b>{_escape(title)}</b>\nChoose a format:",
@@ -148,20 +153,29 @@ def build_router(settings: Settings, db: Database) -> Router:
         await callback.answer("Download started.")
         if callback.message is None:
             return
-        await callback.message.edit_text(f"Downloading: {fmt.label} …")
+        await callback.message.edit_text(f"Downloading: {fmt.label}...")
         job_id = await db.create_job(user_id, url, fmt.format_id)
         path: Path | None = None
         try:
             async with semaphore:
                 path = await asyncio.to_thread(
-                    download_media, url, fmt.format_id, settings.download_dir, settings.max_file_size_mb
+                    download_media,
+                    url,
+                    fmt.format_id,
+                    settings.download_dir,
+                    settings.max_file_size_mb,
+                    settings.youtube_cookies_file,
+                    settings.socket_timeout_seconds,
                 )
             if path.stat().st_size > settings.max_file_size_mb * 1024 * 1024:
                 raise DownloadError(f"The file exceeds the {settings.max_file_size_mb} MB size limit.")
+
             caption = f"{path.name[:900]}\nDownloaded with MediaDownloader"
             if path.suffix.lower() in {".mp4", ".m4v", ".mov", ".webm"}:
                 try:
-                    await callback.message.answer_video(FSInputFile(path), caption=caption, supports_streaming=True)
+                    await callback.message.answer_video(
+                        FSInputFile(path), caption=caption, supports_streaming=True
+                    )
                 except TelegramBadRequest:
                     await callback.message.answer_document(FSInputFile(path), caption=caption)
             else:
@@ -175,7 +189,7 @@ def build_router(settings: Settings, db: Database) -> Router:
             logger.exception("Download/send failed for job %s", job_id)
             await db.finish_job(job_id, "failed")
             await callback.message.edit_text(
-                "The download or file delivery failed. Check the file size limit and the source link."
+                "The download or file delivery failed. Check the file size limit and source availability."
             )
         finally:
             if path is not None:
