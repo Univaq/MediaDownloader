@@ -16,6 +16,8 @@ class Settings:
     max_file_size_mb: int = 45
     max_duration_seconds: int = 10_800
     max_concurrent_downloads: int = 2
+    socket_timeout_seconds: int = 30
+    youtube_cookies_file: Path | None = None
     log_level: str = "INFO"
 
     @classmethod
@@ -41,6 +43,9 @@ class Settings:
         if not ids:
             raise ValueError("Set at least one Telegram user ID in ALLOWED_USER_IDS.")
 
+        raw_cookies = os.getenv("YOUTUBE_COOKIES_FILE", "").strip()
+        cookies_file = Path(raw_cookies).expanduser() if raw_cookies else None
+
         return cls(
             bot_token=token,
             allowed_user_ids=frozenset(ids),
@@ -49,6 +54,8 @@ class Settings:
             max_file_size_mb=_positive_int("MAX_FILE_SIZE_MB", 45),
             max_duration_seconds=_positive_int("MAX_DURATION_SECONDS", 10_800),
             max_concurrent_downloads=_positive_int("MAX_CONCURRENT_DOWNLOADS", 2),
+            socket_timeout_seconds=_positive_int("SOCKET_TIMEOUT_SECONDS", 30),
+            youtube_cookies_file=cookies_file,
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         )
 
