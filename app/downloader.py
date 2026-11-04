@@ -191,6 +191,8 @@ def download_media(
     cookies_file: Path | None = None,
     socket_timeout_seconds: int = 30,
 ) -> Path:
+    if cookies_file is not None and not cookies_file.is_file():
+        raise DownloadError("The configured YouTube cookies file does not exist.")
     output_dir.mkdir(parents=True, exist_ok=True)
     job_dir = Path(tempfile.mkdtemp(prefix="job-", dir=output_dir))
     safe_format = re.sub(r"[^A-Za-z0-9_+./-]", "", format_id)
