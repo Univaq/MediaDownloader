@@ -15,7 +15,7 @@ A private Telegram media downloader bot for Instagram, YouTube, and Kick, built 
 
 ## Requirements
 
-- Python 3.11+ (3.12 recommended)
+- Python 3.11+ (Python 3.12 recommended)
 - FFmpeg and ffprobe on PATH
 - Telegram bot token from @BotFather
 
@@ -28,7 +28,7 @@ A private Telegram media downloader bot for Instagram, YouTube, and Kick, built 
 5. Verify FFmpeg with `ffmpeg -version`.
 6. Run `./.venv/Scripts/python.exe -m app`.
 
-See [the complete installation guide](docs/INSTALL.md). Separate dependency lists are provided in `requirements.txt` and `requirements-dev.txt`.
+See [the complete installation guide](docs/INSTALL.md).
 
 Example configuration:
 
@@ -47,15 +47,7 @@ LOG_LEVEL=INFO
 
 ## Ubuntu
 
-Run `bash scripts/setup_ubuntu.sh` as a normal sudo-enabled user from the repository. Edit `.env`, then run `.venv/bin/python -m app` to test. For production, review `deploy/media-downloader-bot.service`, create the dedicated `mediadl` user, adjust ownership and paths, and only then enable systemd. See [the complete installation guide](docs/INSTALL.md).
-
-## Development
-
-```bash
-pip install -e ".[dev]"
-pytest
-ruff check .
-```
+Run `bash scripts/setup_ubuntu.sh` as a normal sudo-enabled user from the repository. Edit `.env`, then run `.venv/bin/python -m app` to start the bot. For production, review `deploy/media-downloader-bot.service`, create the dedicated `mediadl` user, adjust ownership and paths, and only then enable systemd. See [the complete installation guide](docs/INSTALL.md).
 
 ## Notes
 
