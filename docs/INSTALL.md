@@ -23,7 +23,7 @@ Manual installation alternative:
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ffmpeg -version
 ```
@@ -76,9 +76,8 @@ Set `BOT_TOKEN` and `ALLOWED_USER_IDS` in `.env` before starting the service. Th
 
 ```bash
 ffmpeg -version
+ffprobe -version
 python -m pip check
-python -m pytest
-python -m ruff check .
 ```
 
-Only download content you own or are authorized to download. Some sites may restrict access or change their extraction behavior. Never add cookies or account credentials to this repository.
+Start the application with `python -m app`. Only download content you own or are authorized to download. Some sites may restrict access or change their extraction behavior. Never add cookies or account credentials to this repository.
