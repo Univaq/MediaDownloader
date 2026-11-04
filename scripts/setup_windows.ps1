@@ -8,6 +8,7 @@ py -3.12 --version
 if (-not (Test-Path '.venv')) { py -3.12 -m venv .venv }
 & '.\.venv\Scripts\python.exe' -m pip install --upgrade pip
 & '.\.venv\Scripts\python.exe' -m pip install -r requirements.txt
+& '.\.venv\Scripts\python.exe' -m pip install --upgrade yt-dlp
 if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
     Write-Warning 'FFmpeg is not on PATH. Install it (for example: winget install Gyan.FFmpeg), then reopen the terminal and verify: ffmpeg -version'
 } else {
