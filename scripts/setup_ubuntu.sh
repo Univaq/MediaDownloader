@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+APP_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$APP_DIR"
 
-if [[ "${EUID}" -eq 0 ]]; then
+if [[ "\${EUID}" -eq 0 ]]; then
   echo 'Run this setup script as a normal user with sudo access, not as root.' >&2
   exit 1
 fi
@@ -19,6 +19,7 @@ fi
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip install --upgrade yt-dlp
 if [[ ! -f .env ]]; then
   cp .env.example .env
   chmod 600 .env
